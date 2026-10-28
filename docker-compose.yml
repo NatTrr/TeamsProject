@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    platform: linux/amd64
+    container_name: petapp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: petapp
+      POSTGRES_PASSWORD: petapp_dev
+      POSTGRES_DB: petapp
+    ports:
+      - "5432:5432"
+    volumes:
+      - petapp-data:/var/lib/postgresql/data
+volumes:
+  petapp-data:

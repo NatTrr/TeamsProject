@@ -1,0 +1,370 @@
+@host = http://localhost:5080
+
+### ===== AUTH =====
+### 1. Login as Ana (registered earlier). Expect 200
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{ "email": "ana@example.com", "password": "Password123" }
+
+> {% client.global.set("anaToken", response.body.accessToken); client.global.set("anaRefresh", response.body.refreshToken); %}
+
+### 2. Wrong password. Expect 401 auth.invalid_credentials
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{ "email": "ana@example.com", "password": "wrong" }
+
+### 3. Register Bojan (will be the walker). Expect 200 (400 if you run it twice: just use login)
+POST {{host}}/auth/register/owner
+Content-Type: application/json
+
+{ "email": "bojan@example.com", "password": "Password123", "fullName": "Bojan Walker", "phone": "070111222", "city": "Skopje", "pets": [ { "type": "Dog", "name": "Max" } ] }
+
+> {% client.global.set("bojanToken", response.body.accessToken); %}
+
+### 4. Register shop owner with a shop. Expect 200, role ShopOwner
+POST {{host}}/auth/register/shop
+Content-Type: application/json
+
+{
+  "email": "shop@example.com", "password": "Password123", "fullName": "Marko Shop", "phone": "070333444",
+  "shop": {
+    "type": "Shop", "name": "Happy Paws", "websiteUrl": "https://example.com",
+    "address": "Main street 5", "city": "Skopje", "latitude": 41.998, "longitude": 21.43,
+    "isOpen24h": false, "servesPetTypes": ["Dog", "Cat"],
+    "workingHours": [ { "day": "Monday", "opens": "09:00:00", "closes": "19:00:00" } ]
+  }
+}
+
+> {% client.global.set("shopToken", response.body.accessToken); %}
+
+### 5. Refresh token. Expect 200 with NEW tokens
+POST {{host}}/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{anaRefresh}}" }
+
+> {% client.global.set("anaToken", response.body.accessToken); client.global.set("anaRefresh", response.body.refreshToken); %}
+
+### 6. Reuse the OLD refresh token... run this right after 5 with the same body. Skip if unsure
+### 7. No token. Expect 401
+GET {{host}}/pets
+
+### 8. /me. Expect 200 with roles ["Owner"]
+GET {{host}}/me
+Authorization: Bearer {{anaToken}}
+
+### ===== PETS =====
+### 9. Add a cat. Expect 201
+POST {{host}}/pets
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "type": "Cat", "name": "Mimi", "breed": "Persian" }
+
+> {% client.global.set("petId", response.body.id); %}
+
+### 10. List pets. Expect Rex (Dog) and Mimi (Cat)
+GET {{host}}/pets
+Authorization: Bearer {{anaToken}}
+
+### ===== PLACES AND MAP =====
+### 11. Shops list. Expect DEMO Pet Shop and Happy Paws, with distance
+GET {{host}}/places?type=Shop&lat=41.9981&lng=21.4254&radiusKm=10
+
+> {% client.global.set("shopId", response.body.items[0].id); %}
+
+### 12. Shop details with working hours. Expect 200
+GET {{host}}/places/{{shopId}}
+
+### 13. Shop owner adds a vet. Expect 201
+POST {{host}}/places
+Authorization: Bearer {{shopToken}}
+Content-Type: application/json
+
+{ "type": "Vet", "name": "Test Vet", "latitude": 42.0, "longitude": 21.44, "isOpen24h": true }
+
+> {% client.global.set("myPlaceId", response.body.id); %}
+
+### 14. Shop owner edits it. Expect 200 with new name
+PUT {{host}}/places/{{myPlaceId}}
+Authorization: Bearer {{shopToken}}
+Content-Type: application/json
+
+{ "type": "Vet", "name": "Test Vet Renamed", "latitude": 42.0, "longitude": 21.44, "isOpen24h": true }
+
+### 15. Regular owner tries to add a place. Expect 403
+POST {{host}}/places
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "type": "Shop", "name": "Nope", "latitude": 42.0, "longitude": 21.44 }
+
+### 16. Another owner edits my place. Expect 403 place.not_owner
+PUT {{host}}/places/{{myPlaceId}}
+Authorization: Bearer {{bojanToken}}
+Content-Type: application/json
+
+{ "type": "Vet", "name": "Hacked", "latitude": 42.0, "longitude": 21.44 }
+
+### 17. Bad coordinates. Expect 400 place.invalid_location
+POST {{host}}/places
+Authorization: Bearer {{shopToken}}
+Content-Type: application/json
+
+{ "type": "Shop", "name": "Bad", "latitude": 200, "longitude": 21.44 }
+
+### 18. Map pins, all. Expect GeoJSON with DEMO pins + Happy Paws + Test Vet
+GET {{host}}/map/pins
+
+### 19. Map pins, dog parks only. Expect 1 pin
+GET {{host}}/map/pins?type=DogPark
+
+### 20. Dog page / Cat page / Parrot page. Expect features differ: Dog has Walkers+DogParks, Cat has Shops, Parrot only FoodCheck
+GET {{host}}/home/Dog?lat=41.9981&lng=21.4254&radiusKm=15
+
+###
+GET {{host}}/home/Cat?lat=41.9981&lng=21.4254&radiusKm=15
+
+###
+GET {{host}}/home/Parrot
+
+### ===== FAVORITES =====
+### 21. Favorite the shop. Expect 204
+PUT {{host}}/favorites/{{shopId}}
+Authorization: Bearer {{anaToken}}
+
+### 22. List favorites. Expect 1 place
+GET {{host}}/favorites
+Authorization: Bearer {{anaToken}}
+
+### ===== REVIEWS =====
+### 23. Review the shop. Expect 201
+POST {{host}}/reviews
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "targetType": "Place", "targetId": "{{shopId}}", "rating": 5, "comment": "Great shop" }
+
+> {% client.global.set("reviewId", response.body.id); %}
+
+### 24. Same review again. Expect 409 review.already_exists
+POST {{host}}/reviews
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "targetType": "Place", "targetId": "{{shopId}}", "rating": 4 }
+
+### 25. Rating 9. Expect 400 review.invalid_rating
+POST {{host}}/reviews
+Authorization: Bearer {{bojanToken}}
+Content-Type: application/json
+
+{ "targetType": "Place", "targetId": "{{shopId}}", "rating": 9 }
+
+### 26. Shop owner reviews their own place. Expect 400 review.own_target
+POST {{host}}/reviews
+Authorization: Bearer {{shopToken}}
+Content-Type: application/json
+
+{ "targetType": "Place", "targetId": "{{myPlaceId}}", "rating": 5 }
+
+### 27. Edit my review. Expect 200
+PUT {{host}}/reviews/{{reviewId}}
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "rating": 4, "comment": "Good shop" }
+
+### 28. Someone else edits it. Expect 403
+PUT {{host}}/reviews/{{reviewId}}
+Authorization: Bearer {{bojanToken}}
+Content-Type: application/json
+
+{ "rating": 1, "comment": "x" }
+
+### 29. List reviews. Expect 1 review
+GET {{host}}/reviews?targetType=Place&targetId={{shopId}}
+
+### 30. Shop now shows avgRating 4 and reviewCount 1
+GET {{host}}/places/{{shopId}}
+
+### ===== WALKERS =====
+### 31. Bojan creates walker profile. Expect 200
+PUT {{host}}/walkers/me
+Authorization: Bearer {{bojanToken}}
+Content-Type: application/json
+
+{ "bio": "Love long walks", "pricePerWalk": 300, "serviceRadiusKm": 5, "latitude": 41.9981, "longitude": 21.4254, "isActive": true }
+
+> {% client.global.set("walkerId", response.body.id); %}
+
+### 32. Shop owner tries to be a walker. Expect 403
+PUT {{host}}/walkers/me
+Authorization: Bearer {{shopToken}}
+Content-Type: application/json
+
+{ "bio": "x", "pricePerWalk": 1, "serviceRadiusKm": 1, "latitude": 41.9, "longitude": 21.4, "isActive": true }
+
+### 33. List walkers near me. Expect Bojan, location rounded to 2 decimals
+GET {{host}}/walkers?lat=41.9981&lng=21.4254&radiusKm=10
+
+### 34. Ana requests a walk. Expect 201 Pending
+POST {{host}}/walkers/{{walkerId}}/requests
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "petId": "{{petId}}", "message": "Can you walk Mimi tomorrow?", "preferredTime": "2026-10-20T10:00:00+02:00" }
+
+### 35. Bojan requests himself. Expect 400 walker.cannot_request_self
+POST {{host}}/walkers/{{walkerId}}/requests
+Authorization: Bearer {{bojanToken}}
+Content-Type: application/json
+
+{ "message": "me" }
+
+### 36. Bojan sees incoming. Expect 1 request, contactPhone null
+GET {{host}}/walker-requests/incoming
+Authorization: Bearer {{bojanToken}}
+
+> {% client.global.set("requestId", response.body[0].id); %}
+
+### 37. Ana (not the walker) tries to respond. Expect 404
+POST {{host}}/walker-requests/{{requestId}}/respond
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "accept": true }
+
+### 38. Bojan accepts. Expect 200 Accepted
+POST {{host}}/walker-requests/{{requestId}}/respond
+Authorization: Bearer {{bojanToken}}
+Content-Type: application/json
+
+{ "accept": true }
+
+### 39. Answer again. Expect 409 request.already_answered
+POST {{host}}/walker-requests/{{requestId}}/respond
+Authorization: Bearer {{bojanToken}}
+Content-Type: application/json
+
+{ "accept": false }
+
+### 40. Ana sees sent requests. Expect Accepted AND contactPhone 070111222
+GET {{host}}/walker-requests/sent
+Authorization: Bearer {{anaToken}}
+
+### 41. Review the walker. Expect 201
+POST {{host}}/reviews
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "targetType": "Walker", "targetId": "{{walkerId}}", "rating": 5, "comment": "Reliable" }
+
+### ===== REMINDERS =====
+### 42. Create. Expect 201
+POST {{host}}/reminders
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "petId": "{{petId}}", "title": "Rabies vaccine", "dueAt": "2026-11-01T09:00:00+01:00", "repeat": "Yearly", "timeZoneId": "Europe/Skopje" }
+
+> {% client.global.set("reminderId", response.body.id); %}
+
+### 43. List. Expect 1
+GET {{host}}/reminders
+Authorization: Bearer {{anaToken}}
+
+### 44. Mark done. Expect 200 isDone true
+PUT {{host}}/reminders/{{reminderId}}
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "petId": "{{petId}}", "title": "Rabies vaccine", "dueAt": "2026-11-01T09:00:00+01:00", "repeat": "Yearly", "isDone": true }
+
+### 45. List again. Expect empty (done items hidden)
+GET {{host}}/reminders
+Authorization: Bearer {{anaToken}}
+
+### ===== LOST AND FOUND =====
+### 46. Post a lost cat. Expect 201
+POST {{host}}/lostfound
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "type": "Lost", "petType": "Cat", "title": "Lost grey cat", "description": "Near the park", "latitude": 41.99, "longitude": 21.43, "contactPhone": "070555666" }
+
+> {% client.global.set("lostId", response.body.id); %}
+
+### 47. Board near me. Expect 1 with distance
+GET {{host}}/lostfound?lat=41.9981&lng=21.4254&radiusKm=10
+
+### 48. Someone else resolves it. Expect 403
+POST {{host}}/lostfound/{{lostId}}/resolve
+Authorization: Bearer {{bojanToken}}
+
+### 49. Owner resolves it. Expect 204
+POST {{host}}/lostfound/{{lostId}}/resolve
+Authorization: Bearer {{anaToken}}
+
+### 50. Board again. Expect empty (resolved hidden)
+GET {{host}}/lostfound
+
+### ===== FOOD CHECK =====
+### 51. Grapes for dog, Macedonian. Expect Toxic / Database
+POST {{host}}/foodcheck
+Authorization: Bearer {{anaToken}}
+Accept-Language: mk
+Content-Type: application/json
+
+{ "petType": "Dog", "food": "грозје" }
+
+### 52. Sentence with two foods. Expect Toxic (the worst wins)
+POST {{host}}/foodcheck
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "petType": "Dog", "food": "can my dog eat an apple with chocolate?" }
+
+### 53. Apple for hamster. Expect Safe
+POST {{host}}/foodcheck
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "petType": "Hamster", "food": "apple" }
+
+### 54. Unknown food. Expect Unknown/None without AI key, or Caution/AI with key. Never Safe
+POST {{host}}/foodcheck
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "petType": "Cat", "food": "watermelon" }
+
+### 55. Empty food. Expect 400
+POST {{host}}/foodcheck
+Authorization: Bearer {{anaToken}}
+Content-Type: application/json
+
+{ "petType": "Cat", "food": "" }
+
+### 56. History. Expect your checks listed
+GET {{host}}/foodcheck/history
+Authorization: Bearer {{anaToken}}
+
+### ===== CLEANUP / LOGOUT =====
+### 57. Remove favorite. Expect 204
+DELETE {{host}}/favorites/{{shopId}}
+Authorization: Bearer {{anaToken}}
+
+### 58. Logout. Expect 204
+POST {{host}}/auth/logout
+Content-Type: application/json
+
+{ "refreshToken": "{{anaRefresh}}" }
+
+### 59. Refresh with revoked token. Expect 401 auth.invalid_refresh_token
+POST {{host}}/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{anaRefresh}}" }
