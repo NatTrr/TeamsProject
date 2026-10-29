@@ -12,11 +12,9 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ---- Database (PostgreSQL + PostGIS) ----
 builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseNpgsql(builder.Configuration.GetConnectionString("Default"), npgsql => npgsql.UseNetTopologySuite()));
 
-// ---- Identity + JWT ----
 builder.Services.AddIdentityCore<ApplicationUser>(o =>
     {
         o.User.RequireUniqueEmail = true;
@@ -29,7 +27,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(o =>
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is missing");
 builder.Services.AddAuthentication("Bearer").AddJwtBearer(o =>
 {
-    o.MapInboundClaims = false;   // keep claim names exactly as we write them ("sub", "role")
+    o.MapInboundClaims = false;   
     o.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true, ValidIssuer = builder.Configuration["Jwt:Issuer"],
@@ -43,7 +41,6 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("Owner", p => p.RequireRole(Roles.Owner))
     .AddPolicy("ShopOwner", p => p.RequireRole(Roles.ShopOwner));
 
-// ---- Rate limit for the AI food chat: 10 requests / minute / user ----
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -52,7 +49,6 @@ builder.Services.AddRateLimiter(o =>
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
 });
 
-// ---- Services ----
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<FoodCheckService>();
 builder.Services.AddHttpClient("anthropic", c =>
@@ -71,7 +67,7 @@ builder.Services.AddCors(o => o.AddPolicy("web", p => p
 
 var app = builder.Build();
 app.UseCors("web");
-// ---- Create roles + seed data on startup ----
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -88,7 +84,7 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference();   // docs UI at /scalar
+    app.MapScalarApiReference();   
 }
 
 app.UseAuthentication();

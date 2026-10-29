@@ -1,7 +1,6 @@
 @host = http://localhost:5080
 
 ### ===== AUTH =====
-### 1. Login as Ana (registered earlier). Expect 200
 POST {{host}}/auth/login
 Content-Type: application/json
 

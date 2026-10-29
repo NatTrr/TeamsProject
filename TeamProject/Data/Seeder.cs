@@ -17,7 +17,6 @@ public static class Seeder
 
         if (demoData && !await db.Places.AnyAsync())
         {
-            // Clearly fake demo pins around Skopje centre so the map isn't empty. Replace with real data.
             db.Places.AddRange(
                 PlaceMapper.Create(new PlaceInput(PlaceType.Shop, "DEMO Pet Shop", "Demo data", "Demo street 1", "Skopje",
                     "https://example.com", null, 41.9965, 21.4314, false, null,

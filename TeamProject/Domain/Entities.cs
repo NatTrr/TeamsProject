@@ -31,7 +31,6 @@ public class PetProfile
     public string? PhotoUrl { get; set; }
 }
 
-/// One table for shops, dog parks and vets.
 public class Place
 {
     public Guid Id { get; set; }
@@ -148,7 +147,7 @@ public class FoodItem
     public Verdict Verdict { get; set; }
     public string ExplanationEn { get; set; } = "";
     public string ExplanationMk { get; set; } = "";
-    public string Aliases { get; set; } = "";   // comma separated, English + Macedonian
+    public string Aliases { get; set; } = "";   
 }
 
 public class FoodCheckLog

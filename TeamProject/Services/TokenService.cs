@@ -58,8 +58,8 @@ public class TokenService(IConfiguration cfg, AppDbContext db, UserManager<Appli
         var user = await users.FindByIdAsync(token.UserId.ToString());
         if (user is null) return null;
 
-        token.RevokedAt = DateTime.UtcNow;      // rotation: old token can't be reused
-        return await IssueAsync(user);          // also saves the revoke
+        token.RevokedAt = DateTime.UtcNow;      
+        return await IssueAsync(user);       
     }
 
     public async Task RevokeAsync(string raw)

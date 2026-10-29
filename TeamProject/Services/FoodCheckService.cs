@@ -15,7 +15,6 @@ public class FoodCheckService(AppDbContext db, IHttpClientFactory httpFactory, I
         var q = Normalize(food);
         var items = await db.FoodItems.AsNoTracking().Where(f => f.PetType == pet).ToListAsync();
 
-        // 1) Curated database first. If the text mentions several known foods, the most dangerous one wins.
         var matches = items
             .Where(f => Names(f).Any(n => n.Length >= 2 && Regex.IsMatch(q, $@"(^|\s){Regex.Escape(n)}(\s|$)")))
             .ToList();
@@ -30,7 +29,6 @@ public class FoodCheckService(AppDbContext db, IHttpClientFactory httpFactory, I
         }
         else
         {
-            // 2) Not in the database -> AI opinion (or "unknown" if no API key / error)
             response = await AskAiAsync(pet, food, lang);
         }
 
@@ -84,8 +82,7 @@ public class FoodCheckService(AppDbContext db, IHttpClientFactory httpFactory, I
                     var explanation = j.RootElement.GetProperty("explanation").GetString();
                     if (Enum.TryParse<Verdict>(verdictText, true, out var v) && !string.IsNullOrWhiteSpace(explanation))
                     {
-                        // Safety rule: an AI answer for a food that is NOT in our curated list is never "Safe".
-                        // Delete the next line if your team decides to trust the AI more.
+                        
                         if (v == Verdict.Safe) v = Verdict.Caution;
                         return Build(v, AnswerSource.AI, explanation, lang);
                     }

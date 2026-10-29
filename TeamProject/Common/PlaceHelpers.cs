@@ -7,7 +7,7 @@ namespace PetApp.Api.Common;
 
 public static class PetFeatures
 {
-    // Which sections the mobile app should show per animal. Change here to switch things on or off.
+
     static readonly Dictionary<PetType, PetFeature[]> Map = new()
     {
         [PetType.Dog] = new[] { PetFeature.Shops, PetFeature.DogParks, PetFeature.Vets, PetFeature.Walkers, PetFeature.FoodCheck },
@@ -37,7 +37,7 @@ public static class Ratings
 
 public static class PlaceQuery
 {
-    /// Approved places, filtered; ordered by distance when lat/lng are given, otherwise by name.
+
     public static IQueryable<Place> Filter(AppDbContext db, IReadOnlyCollection<PlaceType>? types, PetType? petType,
         double? lat, double? lng, double? radiusKm, string? search)
     {

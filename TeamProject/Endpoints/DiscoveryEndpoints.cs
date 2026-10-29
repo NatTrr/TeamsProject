@@ -10,7 +10,6 @@ public static class DiscoveryEndpoints
 {
     public static void MapDiscovery(this IEndpointRouteBuilder app)
     {
-        // What the Dog / Cat / Parrot / Hamster page needs, in one call.
         app.MapGet("/home/{petType}", async (PetType petType, AppDbContext db, double? lat, double? lng, double? radiusKm) =>
         {
             if (!Enum.IsDefined(petType)) return Err.Bad("pet.invalid_type");
@@ -36,7 +35,6 @@ public static class DiscoveryEndpoints
             return Results.Ok(new PetHomeDto(petType, features.Select(f => f.ToString()).ToList(), shops, parks, vets, walkers));
         }).WithTags("Discovery");
 
-        // GeoJSON for the interactive globe. Small payload; the app calls /places/{id} when a pin is tapped.
         app.MapGet("/map/pins", async (AppDbContext db, PlaceType? type, PetType? petType, double? lat, double? lng, double? radiusKm) =>
         {
             var types = type is null ? null : new[] { type.Value };

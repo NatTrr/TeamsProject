@@ -43,7 +43,6 @@ public static class WalkerEndpoints
 
     static WalkRequestDto MapRequest(WalkRequest r, bool viewerIsWalker)
     {
-        // Phone numbers are revealed only after the walker accepts.
         string? contact = null;
         if (r.Status == RequestStatus.Accepted)
             contact = viewerIsWalker ? r.Owner.PhoneNumber : r.Walker.User.PhoneNumber;
@@ -75,7 +74,6 @@ public static class WalkerEndpoints
             return Results.Ok(Map(w, null, null, ratings));
         }).RequireAuthorization("Owner");
 
-        // Create or update my walker profile (any pet owner can offer walking)
         g.MapPut("/me", async (WalkerInput i, ClaimsPrincipal user, AppDbContext db) =>
         {
             if (!Geo.Valid(i.Latitude, i.Longitude)) return Err.Bad("walker.invalid_location");
@@ -101,7 +99,6 @@ public static class WalkerEndpoints
             return Results.Ok(Map(w, null, null, new Dictionary<Guid, RatingInfo>()));
         }).RequireAuthorization("Owner");
 
-        // Owner asks a walker
         g.MapPost("/{id:guid}/requests", async (Guid id, WalkRequestInput i, ClaimsPrincipal user, AppDbContext db) =>
         {
             var uid = user.Id();
@@ -126,7 +123,6 @@ public static class WalkerEndpoints
             return Results.Created($"/walker-requests/{req.Id}", new { req.Id, req.Status });
         }).RequireAuthorization("Owner");
 
-        // No notifications in this version: the app polls these when opened.
         var rq = app.MapGroup("/walker-requests").WithTags("Walker requests").RequireAuthorization();
 
         rq.MapGet("/incoming", async (ClaimsPrincipal user, AppDbContext db) =>

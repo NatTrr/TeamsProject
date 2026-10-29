@@ -6,7 +6,6 @@ using PetApp.Api.Dtos;
 
 namespace PetApp.Api.Common;
 
-/// Every error has a code the mobile app translates (e.g. "auth.invalid_credentials").
 public static class Err
 {
     public static IResult Bad(string code, string? detail = null) => Results.BadRequest(new ApiError(code, detail));
@@ -23,7 +22,7 @@ public static class UserExtensions
 
 public static class Lang
 {
-    /// "mk" if the app sends Accept-Language: mk..., otherwise "en".
+
     public static string From(HttpRequest r) =>
         r.Headers.AcceptLanguage.ToString().TrimStart().StartsWith("mk", StringComparison.OrdinalIgnoreCase) ? "mk" : "en";
 }
