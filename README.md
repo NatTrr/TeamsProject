@@ -93,6 +93,7 @@ EXPO_PUBLIC_API_URL=http://YOUR-MACHINE-IP:5080
 CORS allows `http://localhost:8081` and `http://localhost:19006` for the web build.
 
 ### Optional: extra seed data
+<img width="937" height="759" alt="39590FA8-50AF-4A39-90B6-A32C00065D3E" src="https://github.com/user-attachments/assets/3ca1b9f6-e08d-40dd-9950-dc4a0ece5cca" />
 
 ```bash
 docker exec -i petapp-db psql -U petapp -d petapp < parks.sql
