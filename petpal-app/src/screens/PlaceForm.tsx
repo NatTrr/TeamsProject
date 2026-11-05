@@ -4,6 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useI18n } from '../i18n';
 import { PET_TYPES, PetType } from '../auth';
 import { getMyLocation } from '../location';
+import { parseMapsLink, reverseGeocode } from '../format';
 import { api, ApiError } from '../api';
 import { colors } from '../theme';
 import { petColor } from '../icons';
@@ -18,7 +19,10 @@ const empty: Row = { o: '', c: '' };
 
 export default function PlaceForm({ navigation, route }: NativeStackScreenProps<RootStackParamList, 'PlaceForm'>) {
   const id = route.params?.id;
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const [link, setLink] = useState('');
+  const [linkMsg, setLinkMsg] = useState<string | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
   const [type, setType] = useState<(typeof TYPES)[number]>('Shop');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -52,6 +56,30 @@ export default function PlaceForm({ navigation, route }: NativeStackScreenProps<
 
   const toggleServe = (p: PetType) => setServes((x) => (x.includes(p) ? x.filter((y) => y !== p) : [...x, p]));
   const mine = async () => { const m = await getMyLocation(); setCoords(`${m.latitude.toFixed(5)}, ${m.longitude.toFixed(5)}`); };
+
+  const fromLink = async () => {
+    setLinkMsg(null);
+    const r = parseMapsLink(link);
+    if (!r) return setLinkMsg(t('pf.linkBad'));
+    if (!r.coords) return setLinkMsg(t('pf.linkNoCoords'));
+    if (r.name) {
+      setName(r.name);
+      if (/vet|ветер/i.test(r.name)) setType('Vet');
+      else if (/park|парк/i.test(r.name)) setType('DogPark');
+    }
+    setCoords(`${r.coords.latitude}, ${r.coords.longitude}`);
+    setLinkBusy(true);
+    try {
+      const a = await reverseGeocode(r.coords.latitude, r.coords.longitude, lang);
+      if (a.address) setAddress(a.address);
+      if (a.city) setCity(a.city);
+      setLinkMsg(t('pf.linkOk'));
+    } catch {
+      setLinkMsg(t('pf.linkPartial'));
+    } finally {
+      setLinkBusy(false);
+    }
+  };
 
   const save = async () => {
     setErr(null);
@@ -109,6 +137,14 @@ export default function PlaceForm({ navigation, route }: NativeStackScreenProps<
       </View>
       {loading ? <ActivityIndicator color={colors.ink} style={{ marginTop: 20 }} /> : (
         <View style={{ marginTop: 16 }}>
+          {!id ? (
+            <View style={{ padding: 14, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.lime, marginBottom: 16 }}>
+              <Field label={t('pf.link')} value={link} onChangeText={setLink} placeholder="https://www.google.com/maps/place/..." autoCapitalize="none" autoCorrect={false} />
+              <Btn label={t('pf.linkGo')} loading={linkBusy} onPress={fromLink} height={46} />
+              {linkMsg ? <Txt variant="small" style={{ marginTop: 8, lineHeight: 18 }}>{linkMsg}</Txt> : null}
+              <Txt variant="muted" style={{ fontSize: 12, marginTop: 6 }}>{t('pf.linkHint')}</Txt>
+            </View>
+          ) : null}
           <Txt variant="bold" style={{ fontSize: 13, marginLeft: 4, marginBottom: 6 }}>{t('pf.type')}</Txt>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
             {TYPES.map((x) => <Chip key={x} label={t(`pf.t.${x}` as any)} selected={type === x} onPress={() => setType(x)} />)}

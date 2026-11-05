@@ -23,14 +23,15 @@ function Badge({ text, bg = colors.lime }: { text: string; bg?: string }) {
   );
 }
 
-function Row({ icon, bg, title, line, badge, onPress }: { icon: React.ReactNode; bg: string; title: string; line: string; badge?: React.ReactNode; onPress?: () => void }) {
+function Row({ icon, bg, title, line, badge, trailing, onPress }: { icon: React.ReactNode; bg: string; title: string; line: string; badge?: React.ReactNode; trailing?: React.ReactNode; onPress?: () => void }) {
   return (
     <View style={{ backgroundColor: colors.ink, borderRadius: 22, paddingBottom: 4, marginBottom: 12 }}>
+      <View style={{ backgroundColor: colors.white, borderWidth: 2, borderColor: colors.ink, borderRadius: 22, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={title}
         onPress={onPress}
-        style={{ backgroundColor: colors.white, borderWidth: 2, borderColor: colors.ink, borderRadius: 22, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}
+        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}
       >
         <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: bg, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' }}>
           {icon}
@@ -45,6 +46,8 @@ function Row({ icon, bg, title, line, badge, onPress }: { icon: React.ReactNode;
         </View>
         {badge}
       </Pressable>
+      {trailing}
+      </View>
     </View>
   );
 }
@@ -61,7 +64,8 @@ export function PlaceCard({ p, onPress, trailing }: { p: PlaceSummary; onPress?:
       bg={tint[p.type] ?? colors.lilac}
       title={p.name}
       line={[rate(p.avgRating, p.reviewCount, t('place.new')), km(p.distanceKm), p.address].filter(Boolean).join(' · ')}
-      badge={trailing ?? (p.isOpen24h ? <Badge text={t('place.open24')} /> : undefined)}
+      badge={trailing ? undefined : p.isOpen24h ? <Badge text={t('place.open24')} /> : undefined}
+      trailing={trailing}
       onPress={onPress}
     />
   );

@@ -108,7 +108,7 @@ export default function Navigation() {
   }
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={navTheme} documentTitle={{ formatter: () => 'PetPal' }}>
       <Root.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
         {user ? (
           <>

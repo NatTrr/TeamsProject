@@ -6,6 +6,7 @@ import { api, ApiError } from '../api';
 import { colors } from '../theme';
 import { BackButton, Btn, Chip, ErrorBanner, Field, ScreenScroll, Txt } from '../ui';
 import { parseLocal } from '../format';
+import DateField from '../DateField';
 import type { RootStackParamList } from '../navigation';
 
 const CATS = ['vaccine', 'flea', 'vet', 'groom', 'other'] as const;
@@ -74,8 +75,8 @@ export default function NewReminder({ navigation }: NativeStackScreenProps<RootS
       ) : <Txt variant="muted" style={{ marginBottom: 12 }}>{t('rem.noPets')}</Txt>}
 
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <View style={{ flex: 1.4 }}><Field label={t('rem.date')} value={date} onChangeText={setDate} placeholder="2026-11-01" /></View>
-        <View style={{ flex: 1 }}><Field label={t('rem.time')} value={time} onChangeText={setTime} placeholder="09:00" /></View>
+        <View style={{ flex: 1.4 }}><DateField label={t('rem.date')} mode="date" value={date} onChange={setDate} futureOnly /></View>
+        <View style={{ flex: 1 }}><DateField label={t('rem.time')} mode="time" value={time} onChange={setTime} /></View>
       </View>
 
       <Txt variant="bold" style={{ fontSize: 13, marginLeft: 4, marginBottom: 6 }}>{t('rem.repeat')}</Txt>

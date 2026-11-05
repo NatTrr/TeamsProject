@@ -8,6 +8,8 @@ import { colors, fonts } from '../theme';
 import { Icon } from '../icons';
 import { BackButton, Btn, Card, Chip, ErrorBanner, ScreenScroll, Txt } from '../ui';
 import { ReviewList, Stars } from '../reviews';
+import DateField from '../DateField';
+import { parseLooseDateTime } from '../format';
 import type { Paged, Review, WalkerSummary } from '../types';
 import type { RootStackParamList } from '../navigation';
 
@@ -67,8 +69,8 @@ export default function Walker({ navigation, route }: NativeStackScreenProps<Roo
     setErr(null);
     let preferredTime: string | null = null;
     if (when.trim()) {
-      const d = new Date(when.trim().replace(' ', 'T'));
-      if (isNaN(d.getTime())) return setErr(t('walker.timeBad'));
+      const d = parseLooseDateTime(when);
+      if (!d) return setErr(t('walker.timeBad'));
       preferredTime = d.toISOString();
     }
     setBusy(true);
@@ -153,15 +155,8 @@ export default function Walker({ navigation, route }: NativeStackScreenProps<Roo
                 maxLength={500}
                 style={{ minHeight: 90, textAlignVertical: 'top', borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.white, padding: 16, fontFamily: fonts.medium, fontSize: 16, color: colors.ink }}
               />
-              <Txt variant="bold" style={{ fontSize: 13, marginLeft: 4, marginTop: 12, marginBottom: 6 }}>{t('walker.time')}</Txt>
-              <TextInput
-                accessibilityLabel={t('walker.time')}
-                value={when}
-                onChangeText={setWhen}
-                placeholder="2026-10-17 18:00"
-                placeholderTextColor="#7C9486"
-                style={{ height: 52, borderRadius: 999, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.white, paddingHorizontal: 20, fontFamily: fonts.medium, fontSize: 16, color: colors.ink, marginBottom: 14 }}
-              />
+              <View style={{ height: 12 }} />
+              <DateField label={t('walker.time')} mode="datetime" value={when} onChange={setWhen} futureOnly />
               <ErrorBanner message={err} />
               <Btn label={t('walker.send')} loading={busy} onPress={send} />
             </>

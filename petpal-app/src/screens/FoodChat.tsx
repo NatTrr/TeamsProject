@@ -146,6 +146,7 @@ function ResultCard({ r, onVet }: { r: Result; onVet: () => void }) {
   const { t } = useI18n();
   const v = verdictInfo(r.verdict);
   const fromDb = (r.source ?? '').toLowerCase().includes('database');
+  const notFound = !fromDb && (r.verdict ?? '').toLowerCase() === 'unknown';
   return (
     <View style={{ marginTop: 10, backgroundColor: colors.ink, borderRadius: 22, paddingBottom: 4 }}>
       <View style={{ backgroundColor: colors.white, borderWidth: 2, borderColor: colors.ink, borderRadius: 22, padding: 14 }}>
@@ -153,8 +154,8 @@ function ResultCard({ r, onVet }: { r: Result; onVet: () => void }) {
           <View style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, borderWidth: 2, borderColor: colors.ink, backgroundColor: v.bg }}>
             <Txt variant="small" style={{ fontFamily: fonts.display, fontSize: 13, letterSpacing: 0.4 }}>{t(v.key)}</Txt>
           </View>
-          <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 2, borderColor: colors.ink, backgroundColor: fromDb ? colors.line : colors.lilac }}>
-            <Txt variant="small" style={{ fontFamily: fonts.bold, fontSize: 12 }}>{fromDb ? t('food.src.db') : t('food.src.ai')}</Txt>
+          <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 2, borderColor: colors.ink, backgroundColor: fromDb || notFound ? colors.line : colors.lilac }}>
+            <Txt variant="small" style={{ fontFamily: fonts.bold, fontSize: 12 }}>{fromDb ? t('food.src.db') : notFound ? t('food.src.none') : t('food.src.ai')}</Txt>
           </View>
         </View>
         {r.matchedFood ? <Txt variant="bold" style={{ marginTop: 10 }}>{r.matchedFood}</Txt> : null}
